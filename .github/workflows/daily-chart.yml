@@ -4,7 +4,7 @@ on:
   schedule:
     # 08:05 JST（=23:05 UTC）に毎日実行
     - cron: '5 23 * * *'
-  workflow_dispatch: {}  # 手動実行も可能
+  workflow_dispatch: {}  # 手動実行も可
 
 jobs:
   run:
@@ -23,17 +23,26 @@ jobs:
           pip install pandas gspread oauth2client matplotlib requests
 
       - name: Write SA json
+        # echo だけだと改行で壊れるケースがあるので printf で安全に書き込み
+        env:
+          SA_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
         run: |
-          echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}' > sa.json
+          printf '%s' "$SA_JSON" > sa.json
+
+      - name: Verify repo contents
+        run: |
+          echo "PWD: $PWD"
+          ls -la
+          test -f ./make_combined_future_v7.py && echo "✓ script found" || (echo "✗ script not found"; exit 1)
 
       - name: Run chart script
         env:
           GOOGLE_SERVICE_ACCOUNT_JSON: sa.json
-          IMGUR_CLIENT_ID: ${{ secrets.IMGUR_CLIENT_ID }}
-          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
-          LINE_GROUP_ID_COMBINED: ${{ secrets.LINE_GROUP_ID_COMBINED }}
-          SUNHOUSE_SHEET_ID: ${{ secrets.SUNHOUSE_SHEET_ID }}
-          HUB_SHEET_ID: ${{ secrets.HUB_SHEET_ID }}
-          DAYS_PAST: ${{ secrets.DAYS_PAST }}
+          IMGUR_CLIENT_ID:            ${{ secrets.IMGUR_CLIENT_ID }}
+          LINE_CHANNEL_ACCESS_TOKEN:  ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_GROUP_ID_COMBINED:     ${{ secrets.LINE_GROUP_ID_COMBINED }}
+          SUNHOUSE_SHEET_ID:          ${{ secrets.SUNHOUSE_SHEET_ID }}
+          HUB_SHEET_ID:               ${{ secrets.HUB_SHEET_ID }}
+          DAYS_PAST:                  ${{ secrets.DAYS_PAST }}
         run: |
-          python make_combined_future_v7.py
+          python ./make_combined_future_v7.py
