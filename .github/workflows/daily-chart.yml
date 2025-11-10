@@ -2,20 +2,30 @@ name: Daily cleaning chart to LINE
 
 on:
   schedule:
-    # 08:05 JST（=23:05 UTC）に毎日実行
-    - cron: '5 23 * * *'
-  workflow_dispatch: {}  # 手動実行も可
+    - cron: "5 23 * * *"   # JST 08:05
+  workflow_dispatch: {}
 
 jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Show workspace (debug)
+        run: |
+          echo "PWD=$(pwd)"
+          echo "GITHUB_WORKSPACE=${{ github.workspace }}"
+          ls -la
+          echo "--- tree ---"
+          find . -maxdepth 2 -type f | sort
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install deps
         run: |
@@ -23,34 +33,16 @@ jobs:
           pip install pandas gspread oauth2client matplotlib requests
 
       - name: Write SA json
-        # echo だけだと改行で壊れるケースがあるので printf で安全に書き込み
-        env:
-          SA_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
-        run: |
-          printf '%s' "$SA_JSON" > sa.json
+        run: echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}' > sa.json
 
-      - name: Verify repo contents
-        run: |
-          echo "PWD: $PWD"
-          echo "Branch: $GITHUB_REF"
-          ls -la
-          echo "---- tree ----"
-          ls -R | head -n 200
-
-      - name: Run chart script (auto-find)
+      - name: Run chart script
         env:
           GOOGLE_SERVICE_ACCOUNT_JSON: sa.json
-          IMGUR_CLIENT_ID:            ${{ secrets.IMGUR_CLIENT_ID }}
-          LINE_CHANNEL_ACCESS_TOKEN:  ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
-          LINE_GROUP_ID_COMBINED:     ${{ secrets.LINE_GROUP_ID_COMBINED }}
-          SUNHOUSE_SHEET_ID:          ${{ secrets.SUNHOUSE_SHEET_ID }}
-          HUB_SHEET_ID:               ${{ secrets.HUB_SHEET_ID }}
-          DAYS_PAST:                  ${{ secrets.DAYS_PAST }}
+          IMGUR_CLIENT_ID: ${{ secrets.IMGUR_CLIENT_ID }}
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_GROUP_ID_COMBINED: ${{ secrets.LINE_GROUP_ID_COMBINED }}
+          SUNHOUSE_SHEET_ID: ${{ secrets.SUNHOUSE_SHEET_ID }}
+          HUB_SHEET_ID: ${{ secrets.HUB_SHEET_ID }}
+          DAYS_PAST: ${{ secrets.DAYS_PAST }}
         run: |
-          set -e
-          FILE=$(git ls-files | grep -E '(^|/)make_combined_future_v7\.py$' | head -n1)
-          if [ -z "$FILE" ]; then
-            echo "✗ make_combined_future_v7.py not found in repo"; exit 1
-          fi
-          echo "✓ running: $FILE"
-          python "$FILE"
+          python "${{ github.workspace }}/make_combined_future_v7.py"
