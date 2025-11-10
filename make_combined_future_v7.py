@@ -84,7 +84,7 @@ records = normalize_records(sun, hub_prefix="") + normalize_records(hub, hub_pre
 today = date.today()
 start = today
 end   = today + timedelta(days=DAYS-1)
-ydays = [end - timedelta(days=i)) for i in range(DAYS)]
+ydays = [end - timedelta(days=i) for i in range(DAYS)]
 ymap  = {d:i for i,d in enumerate(ydays)}         # 0 が最上段（未来）
 xmap  = {r:i for i,r in enumerate(ROOMS)}         # 固定の列順
 
@@ -223,3 +223,4 @@ if link:
     push_line_image(link)
 else:
     print("[chart] no image url -> LINE skipped")
+#fix bracket typo
