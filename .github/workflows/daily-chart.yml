@@ -32,10 +32,12 @@ jobs:
       - name: Verify repo contents
         run: |
           echo "PWD: $PWD"
+          echo "Branch: $GITHUB_REF"
           ls -la
-          test -f ./make_combined_future_v7.py && echo "✓ script found" || (echo "✗ script not found"; exit 1)
+          echo "---- tree ----"
+          ls -R | head -n 200
 
-      - name: Run chart script
+      - name: Run chart script (auto-find)
         env:
           GOOGLE_SERVICE_ACCOUNT_JSON: sa.json
           IMGUR_CLIENT_ID:            ${{ secrets.IMGUR_CLIENT_ID }}
@@ -45,4 +47,10 @@ jobs:
           HUB_SHEET_ID:               ${{ secrets.HUB_SHEET_ID }}
           DAYS_PAST:                  ${{ secrets.DAYS_PAST }}
         run: |
-          python ./make_combined_future_v7.py
+          set -e
+          FILE=$(git ls-files | grep -E '(^|/)make_combined_future_v7\.py$' | head -n1)
+          if [ -z "$FILE" ]; then
+            echo "✗ make_combined_future_v7.py not found in repo"; exit 1
+          fi
+          echo "✓ running: $FILE"
+          python "$FILE"
