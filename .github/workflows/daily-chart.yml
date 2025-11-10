@@ -1,0 +1,39 @@
+name: Daily cleaning chart to LINE
+
+on:
+  schedule:
+    # 08:05 JST（=23:05 UTC）に毎日実行
+    - cron: '5 23 * * *'
+  workflow_dispatch: {}  # 手動実行も可能
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas gspread oauth2client matplotlib requests
+
+      - name: Write SA json
+        run: |
+          echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}' > sa.json
+
+      - name: Run chart script
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: sa.json
+          IMGUR_CLIENT_ID: ${{ secrets.IMGUR_CLIENT_ID }}
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_GROUP_ID_COMBINED: ${{ secrets.LINE_GROUP_ID_COMBINED }}
+          SUNHOUSE_SHEET_ID: ${{ secrets.SUNHOUSE_SHEET_ID }}
+          HUB_SHEET_ID: ${{ secrets.HUB_SHEET_ID }}
+          DAYS_PAST: ${{ secrets.DAYS_PAST }}
+        run: |
+          python make_combined_future_v7.py
